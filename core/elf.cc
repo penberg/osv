@@ -835,6 +835,9 @@ void object::load_needed(std::vector<std::shared_ptr<object>>& loaded_objects)
         boost::replace_all(rpath_str, "$ORIGIN", dirname(_pathname));
         boost::split(rpath, rpath_str, boost::is_any_of(":"));
     }
+    if (!dynamic_exists(DT_NEEDED)) {
+        return;
+    }
     auto needed = dynamic_str_array(DT_NEEDED);
     for (auto lib : needed) {
         auto obj = _prog.load_object(lib, rpath, loaded_objects);
