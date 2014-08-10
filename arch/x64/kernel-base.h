@@ -1,6 +1,6 @@
 #ifndef OSV_KERNEL_BASE_H
 #define OSV_KERNEL_BASE_H
 
-#define OSV_KERNEL_BASE 0x200000
+#define OSV_KERNEL_BASE 0x2000000
 
 #endif

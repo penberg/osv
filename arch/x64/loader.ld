@@ -15,7 +15,7 @@ SECTIONS
 	 * We can't export the ELF header base as a symbol, because ld
 	 * insists on moving stuff around if we do.
 	 */
-    . = /*OSV_KERNEL_BASE*/ 0x200000 + 0x1000;
+    . = /*OSV_KERNEL_BASE*/ 0x2000000 + 0x1000;
     .dynamic : { *(.dynamic) } :dynamic :text
     .text : {
         text_start = .;
