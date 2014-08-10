@@ -185,6 +185,8 @@ build-s = $(CXX) $(CXXFLAGS) $(ASFLAGS) -c -o $@ $<
 q-build-s = $(call quiet, $(build-s), AS $@)
 build-so = $(CC) $(CFLAGS) -o $@ $^ $(EXTRA_LIBS)
 q-build-so = $(call quiet, $(build-so), CC $@)
+build-static = $(CXX) $(CXXFLAGS) -static -nostdlib -o $@ $^ $(EXTRA_LIBS)
+q-build-static = $(call quiet, $(build-static), CC $@)
 adjust-deps = sed -i 's! $(subst .,\.,$<)\b! !g' $(@:.o=.d)
 q-adjust-deps = $(call very-quiet, $(adjust-deps))
 
@@ -216,6 +218,10 @@ tests/%.o: COMMON += -fPIC -DBOOST_TEST_DYN_LINK
 %.so: %.o
 	$(makedir)
 	$(q-build-so)
+
+%.static: %.o
+	$(makedir)
+	$(q-build-static)
 
 sys-includes = $(jdkbase)/include $(jdkbase)/include/linux
 autodepend = -MD -MT $@ -MP
@@ -354,6 +360,7 @@ tests += tests/tst-pthread-tsd.so
 tests += tests/tst-thread-local.so
 tests += tests/tst-app.so
 tests += tests/misc-gtod.so
+tests += tests/tst-static-elf.static
 endif
 
 ifeq ($(arch),aarch64)
