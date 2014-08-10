@@ -674,6 +674,9 @@ elf64_hash(const char *name)
 
 Elf64_Sym* object::lookup_symbol_old(const char* name)
 {
+    if (!dynamic_exists(DT_SYMTAB)) {
+        return nullptr;
+    }
     auto symtab = dynamic_ptr<Elf64_Sym>(DT_SYMTAB);
     auto strtab = dynamic_ptr<char>(DT_STRTAB);
     auto hashtab = dynamic_ptr<Elf64_Word>(DT_HASH);
