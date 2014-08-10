@@ -130,6 +130,11 @@ void object::setprivate(bool priv)
              std::memory_order_release);
 }
 
+template <>
+void* object::entry()
+{
+    return reinterpret_cast<void*>(_ehdr.e_entry);
+}
 
 template <>
 void* object::lookup(const char* symbol)
@@ -166,6 +171,11 @@ std::string object::section_name(const Elf64_Shdr& shdr)
         _section_names_cache = std::move(p);
     }
     return _section_names_cache.get() + shdr.sh_name;
+}
+
+bool object::is_dynamic()
+{
+    return _ehdr.e_type == 3 /*ET_DYN*/;
 }
 
 file::file(program& prog, ::fileref f, std::string pathname)
@@ -248,11 +258,15 @@ void* align(void* addr, ulong align, ulong offset)
 
 void object::set_base(void* base)
 {
+    if (!base) {
+        _base = base;
+    } else {
     auto p = std::min_element(_phdrs.begin(), _phdrs.end(),
                               [](Elf64_Phdr a, Elf64_Phdr b)
                                   { return a.p_type == PT_LOAD
                                         && a.p_vaddr < b.p_vaddr; });
     _base = align(base, p->p_align, p->p_vaddr & (p->p_align - 1)) - p->p_vaddr;
+    }
     auto q = std::min_element(_phdrs.begin(), _phdrs.end(),
                               [](Elf64_Phdr a, Elf64_Phdr b)
                                   { return a.p_type == PT_LOAD
@@ -295,6 +309,7 @@ void file::load_segment(const Elf64_Phdr& phdr)
     if (phdr.p_flags & PF_R)
         perm |= mmu::perm_read;
 
+    printf("Loading segment _base=%lx vstart=%lx memsz=%lx...\n", _base, vstart, memsz);
     auto flag = mmu::mmap_fixed | (mlocked() ? mmu::mmap_populate : 0);
     mmu::map_file(_base + vstart, filesz, flag, perm, _f, align_down(phdr.p_offset, mmu::page_size));
     if (phdr.p_filesz != phdr.p_memsz) {
@@ -350,6 +365,7 @@ void object::load_segments()
 	    is_executable = true;
 	    break;
         case PT_NOTE: {
+#if 0
             if (phdr.p_memsz < 16) {
                 /* we have the PT_NOTE segment in the linker scripts,
                  * but if we have no note sections we will end up with
@@ -376,6 +392,7 @@ void object::load_segments()
                 printf("WARNING: libosv.so version mismatch. Kernel is %s, lib is %s\n",
                         osv::version().c_str(), header.n_value.c_str());
             }
+#endif
             break;
         }
         case PT_PHDR:
@@ -429,6 +446,7 @@ void object::unload_segments()
 
 void object::fix_permissions()
 {
+#if 0
     for (auto&& phdr : _phdrs) {
         if (phdr.p_type != PT_GNU_RELRO)
             continue;
@@ -439,6 +457,7 @@ void object::fix_permissions()
         assert((phdr.p_flags & (PF_R | PF_W | PF_X)) == PF_R);
         mmu::mprotect(_base + vstart, memsz, mmu::perm_read);
     }
+#endif
 }
 
 template <typename T>
@@ -968,6 +987,7 @@ std::shared_ptr<elf::object>
 program::load_object(std::string name, std::vector<std::string> extra_path,
         std::vector<std::shared_ptr<object>> &loaded_objects)
 {
+    printf("Loading %s...\n", name.c_str());
     fileref f;
     if (name.find('/') == name.npos) {
         std::vector<std::string> search_path;
@@ -999,7 +1019,11 @@ program::load_object(std::string name, std::vector<std::string> extra_path,
         trace_elf_load(name.c_str());
         auto ef = std::shared_ptr<object>(new file(*this, f, name),
                 [=](object *obj) { remove_object(obj); });
-        ef->set_base(_next_alloc);
+        if (ef->is_dynamic()) {
+            ef->set_base(_next_alloc);
+        } else {
+            ef->set_base(0);
+        }
         ef->setprivate(true);
         // We need to push the object at the end of the list (so that the main
         // shared object gets searched before the shared libraries it uses),
@@ -1014,7 +1038,9 @@ program::load_object(std::string name, std::vector<std::string> extra_path,
         _modules_rcu.assign(new_modules.release());
         osv::rcu_dispose(old_modules);
         ef->load_segments();
-        _next_alloc = ef->end();
+        if (ef->is_dynamic()) {
+            _next_alloc = ef->end();
+        }
         add_debugger_obj(ef.get());
         loaded_objects.push_back(ef);
         ef->load_needed(loaded_objects);

@@ -325,12 +325,15 @@ public:
     void run_init_funcs();
     void run_fini_funcs();
     template <typename T = void>
+    T* entry();
+    template <typename T = void>
     T* lookup(const char* name);
     dladdr_info lookup_addr(const void* addr);
     ulong module_index() const;
     void* tls_addr();
     std::vector<Elf64_Shdr> sections();
     std::string section_name(const Elf64_Shdr& shdr);
+    bool is_dynamic();
 protected:
     virtual void load_segment(const Elf64_Phdr& segment) = 0;
     virtual void unload_segment(const Elf64_Phdr& segment) = 0;
@@ -596,6 +599,16 @@ void program::with_modules(functor f)
     module_delete_disable();
     f(modules_get());
     module_delete_enable();
+}
+
+template <>
+void* object::entry();
+
+template <typename T>
+T*
+object::entry()
+{
+    return reinterpret_cast<T*>(entry<void>());
 }
 
 template <>

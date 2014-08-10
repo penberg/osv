@@ -91,7 +91,10 @@ application::application(const std::string& command, const std::vector<std::stri
 
     _main = _lib->lookup<int (int, char**)>("main");
     if (!_main) {
-        throw launch_error("Failed looking up main");
+        _main = _lib->entry<int (int, char**)>();
+    }
+    if (!_main) {
+        throw launch_error("Failed to look up program entry point");
     }
 }
 
