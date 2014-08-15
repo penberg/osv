@@ -7,3 +7,4 @@
 /dev: ../../static
 /proc: ../../static
 /tmp: ../../static
+/hello: ../../hello
