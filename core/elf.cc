@@ -788,6 +788,9 @@ dladdr_info object::lookup_addr(const void* addr)
     if (addr < _base || addr >= _end) {
         return ret;
     }
+    if (!dynamic_exists(DT_STRTAB)) {
+        return ret;
+    }
     auto strtab = dynamic_ptr<char>(DT_STRTAB);
     auto symtab = dynamic_ptr<Elf64_Sym>(DT_SYMTAB);
     auto len = symtab_len();
