@@ -144,3 +144,12 @@ long syscall(long number, ...)
     }
     return libc_error(ENOSYS);
 }
+
+extern "C" long syscall_wrapper(long number, ...)
+{
+    auto ret = syscall(number);
+    if (ret < 0) {
+        return -errno;
+    }
+    return 0;
+}
