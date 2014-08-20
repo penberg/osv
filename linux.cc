@@ -130,6 +130,8 @@ int futex(int *uaddr, int op, int val, const struct timespec *timeout,
         } while (0)
 
 
+extern long arch_prctl(int code, unsigned long addr);
+
 long syscall(long number, ...)
 {
     switch (number) {
@@ -138,6 +140,7 @@ long syscall(long number, ...)
     SYSCALL2(clock_gettime, clockid_t, struct timespec *);
     SYSCALL2(clock_getres, clockid_t, struct timespec *);
     SYSCALL6(futex, int *, int, int, const struct timespec *, int *, int);
+    SYSCALL2(arch_prctl, int, unsigned long);
     default:
         debug("syscall(): unimplemented system call %d.\n", number);
         break;
