@@ -12,6 +12,7 @@
 #include <osv/sched.hh>
 #include <osv/mutex.h>
 #include <osv/waitqueue.hh>
+#include "libc/libc.hh"
 
 #include <syscall.h>
 #include <stdarg.h>
@@ -137,7 +138,9 @@ long syscall(long number, ...)
     SYSCALL2(clock_gettime, clockid_t, struct timespec *);
     SYSCALL2(clock_getres, clockid_t, struct timespec *);
     SYSCALL6(futex, int *, int, int, const struct timespec *, int *, int);
+    default:
+        debug("syscall(): unimplemented system call %d.\n", number);
+        break;
     }
-
-    abort("syscall(): unimplemented system call %d. Aborting.\n", number);
+    return libc_error(ENOSYS);
 }
